@@ -1,0 +1,18 @@
+{
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "C_Cpp.clang_format_fallbackStyle": "Google",
+    "files.associations": {
+        "batchsys.h": "c",
+        "fs.h": "c",
+        "net.h": "c",
+        "file.h": "c",
+        "syscalls.h": "c",
+        "uio.h": "c",
+        "module.h": "c"
+    },
+    "C_Cpp.default.systemIncludePath": [
+        "/usr/src/linux-hwe-5.19-headers-5.19.0-50/arch/x86/include/uapi",
+        "/usr/src/linux-hwe-5.19-headers-5.19.0-50/include"
+    ]
+}

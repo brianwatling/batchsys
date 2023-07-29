@@ -1,0 +1,10 @@
+*.a
+*.cmd
+*.o
+*.ko
+.batchsys*
+batchsys.mod*
+build/*
+Module.symvers
+modules.order
+test
