@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 Brian Watling <brian@oxbo.dev>
+# SPDX-License-Identifier: CC0-1.0
+
 cmake_minimum_required(VERSION 3.27)
 
 # Ref: https://github.com/enginning/cmake-kernel-module

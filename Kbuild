@@ -1,1 +1,4 @@
+# SPDX-FileCopyrightText: 2023 Brian Watling <brian@oxbo.dev>
+# SPDX-License-Identifier: CC0-1.0
+
 obj-m := batchsys.o

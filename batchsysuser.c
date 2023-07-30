@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 Brian Watling <brian@oxbo.dev>
+// SPDX-License-Identifier: MIT
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif

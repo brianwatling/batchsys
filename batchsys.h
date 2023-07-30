@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 Brian Watling <brian@oxbo.dev>
+// SPDX-License-Identifier: MIT
+
 #ifndef BATCHSYS_H_
 #define BATCHSYS_H_
 

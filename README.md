@@ -1,3 +1,7 @@
+<!--
+SPDX-FileCopyrightText: 2023 Brian Watling <brian@oxbo.dev>
+SPDX-License-Identifier: CC0-1.0
+-->
 # Batchsys
 
 A kernel module for batching system calls.

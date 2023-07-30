@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 Brian Watling <brian@oxbo.dev>
+// SPDX-License-Identifier: MIT
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>

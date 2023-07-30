@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 Brian Watling <brian@oxbo.dev>
+// SPDX-License-Identifier: MIT
+
 // Make intellisense happy.
 #ifndef __KERNEL__
 #define __KERNEL__
