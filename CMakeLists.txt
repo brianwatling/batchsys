@@ -42,6 +42,11 @@ add_executable(test1 src/test.c)
 target_link_libraries(test1 batchsys)
 
 enable_testing()
+
 add_executable(batchsys_test src/batchsys_test.cpp)
 target_link_libraries(batchsys_test batchsys)
 add_test(test_batchsys_test batchsys_test)
+
+add_executable(benchmarks src/benchmarks.cpp)
+target_link_libraries(benchmarks batchsys uring)
+add_test(test_benchmarks benchmarks)

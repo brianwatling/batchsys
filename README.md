@@ -12,11 +12,21 @@ A kernel module for batching system calls.
 
 ## Status
 
-Experimental. Works with Linux Kernel 5.19. `read()`, `write()`, and `close()` are implemented, other system calls are TODO. Needs automated tests.
+Experimental. Works with Linux Kernel 5.19. `read()`, `write()`, and `close()` are implemented, other system calls are TODO.
+
+Anyone considering using this module for anything serious should first consider [io_uring](https://en.wikipedia.org/wiki/Io_uring) which provides batching as well as asynchronous execution of system calls.
 
 ### Performance
 
-Performance wins from batching system calls depend on how expensive each system call is. Batchsys can be up to 75% faster than normal system call on maximum size batches of cheap system calls (ex. write one byte repeatedly). For writes of 1 Kb the speedup from batching is around 15%.
+Performance wins from batching system calls depend on how expensive each system call is. Batchsys can be up to 75% faster than normal system call on maximum size batches of cheap system calls (ex. write one byte repeatedly). For writes of 1 Kb the speedup from batching is around 15%. Note that [io_uring](https://en.wikipedia.org/wiki/Io_uring) is able to make system calls batched and asynchronous and therefore should generally be used instead of Batchsys.
+
+```
+benchmark                                       iters   elapsed ns    average s   average ns      iters/s
+---------------------------------------------------------------------------------------------------------
+batchsys write 1024                            220000    510342471     0.000002         2319       431083
+io_uring write 1024                            300000    508292835     0.000002         1694       590210
+write 1024                                     170000    519702531     0.000003         3057       327110
+```
 
 ## Details/Motivation
 
@@ -112,10 +122,10 @@ int write_to_many(size_t num_fds, int* fds, const void* data, size_t len) {
 
 ## Build
 
-Dependencies: Requires only Kernel headers for your kernel.
+Dependencies: Requires only Kernel headers for your kernel. Benchmarks require liburing.
 
 ```bash
-sudo apt-get install linux-headers-$(uname -r)
+sudo apt-get install linux-headers-$(uname -r) liburing-dev
 ```
 
 Compile:
