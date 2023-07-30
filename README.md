@@ -12,9 +12,9 @@ A kernel module for batching system calls.
 
 ## Status
 
-Experimental. Works with Linux Kernel 5.19. `read()`, `write()`, and `close()` are implemented, other system calls are TODO.
+Currently work on this module is **paused**. Anyone considering using this module for anything serious should first look at [io_uring](https://en.wikipedia.org/wiki/Io_uring) which provides batching as well as asynchronous execution of system calls.
 
-Anyone considering using this module for anything serious should first consider [io_uring](https://en.wikipedia.org/wiki/Io_uring) which provides batching as well as asynchronous execution of system calls.
+Batchsys works with Linux Kernel 5.19. `read()`, `write()`, and `close()` are implemented, other system calls are TODO.
 
 ### Performance
 
@@ -139,6 +139,14 @@ Install kernel module:
 
 ```
 sudo insmod build/batchsys.ko
+```
+
+## Test
+
+Once the kernel module is installed the tests will pass and benchmarks can run.
+
+```bash
+(cd build && ctest)
 ```
 
 ## License
