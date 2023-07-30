@@ -2,6 +2,10 @@
 SPDX-FileCopyrightText: 2023 Brian Watling <brian@oxbo.dev>
 SPDX-License-Identifier: CC0-1.0
 -->
+
+![Ubuntu Build](https://github.com/brianwatling/batchsys/actions/workflows/cmake.yml/badge.svg)
+[![REUSE compliant](https://api.reuse.software/badge/github.com/brianwatling/batchsys)](https://api.reuse.software/info/github.com/brianwatling/batchsys)
+
 # Batchsys
 
 A kernel module for batching system calls.
