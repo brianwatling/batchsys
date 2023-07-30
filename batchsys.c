@@ -11,6 +11,7 @@
 
 #include "batchsys.h"
 
+#include <linux/fdtable.h>
 #include <linux/file.h>
 #include <linux/fs.h>
 #include <linux/init.h>
@@ -20,7 +21,6 @@
 #include <linux/net.h>
 #include <linux/slab.h>
 #include <linux/string.h>
-#include <linux/syscalls.h>
 #include <linux/uaccess.h>
 #include <linux/uio.h>
 #include <linux/version.h>
@@ -48,32 +48,31 @@ typedef struct batchsys_context {
   struct file** registered_files;
 } batchsys_context_t;
 
-static struct file* context_cache_filp(batchsys_context_t* context, int fd) {
-  struct file* filp = fget(fd);
-  if (likely(fd < context->max_fd)) {
-    context->registered_files[fd] = filp;
-  }
-  fput(filp);
-  // WARNING: This is dangerous. The file can be closed without us knowing. Make
-  // sure to close files used with batchsys *through* batchsys. At the very
-  // least don't use file descriptors which have been closed.
-  return filp;
-}
-
 static inline void context_uncache_filp(batchsys_context_t* context, int fd) {
-  if (likely(fd < context->max_fd)) {
-    context->registered_files[fd] = 0;
+  if (likely(fd >= 0 && fd < context->max_fd)) {
+    struct file* filp = context->registered_files[fd];
+    if (likely(filp)) {
+      fput(filp);
+      context->registered_files[fd] = NULL;
+    }
   }
 }
 
-static struct file* get_cached_filp(batchsys_context_t* context, int fd) {
-  if (unlikely(fd < 0)) {
-    return NULL;
+static struct file* context_get_filp(batchsys_context_t* context, int fd,
+                                     struct file** filp_to_put) {
+  struct file* filp;
+  if (likely(fd >= 0 && fd < context->max_fd)) {
+    filp = context->registered_files[fd];
+    if (likely(filp)) {
+      return filp;
+    }
+    filp = fget(fd);
+    context->registered_files[fd] = filp;
+    return filp;
   }
-  if (fd < context->max_fd && context->registered_files[fd]) {
-    return context->registered_files[fd];
-  }
-  return context_cache_filp(context, fd);
+  filp = fget(fd);
+  *filp_to_put = filp;
+  return filp;
 }
 
 // A BatchSysCall returns the sizeof() the SyscallParams it used.
@@ -82,21 +81,33 @@ typedef int (*batchsys_syscall_t)(batchsys_context_t*, syscall_params_t*,
 
 static batchsys_syscall_t batchsys_syscalls[kMaxSyscall] = {};
 
-#define BATCHSYS_SYSCALL_BEGIN(name) \
-  BATCHSYS_SYSCALL_BEGIN_INTERNAL(name, _, name##_params_t)
+#define BATCHSYS_SYSCALL_BEGIN(name, fd) \
+  BATCHSYS_SYSCALL_BEGIN_INTERNAL(name, _, name##_params_t, fd)
 
-#define BATCHSYS_SYSCALL_BEGIN_INTERNAL(name, name_prefix, paramtype)      \
-  static int batchsys##name_prefix##name(batchsys_context_t* context,      \
-                                         syscall_params_t* syscall_params, \
-                                         syscall_result_t* result) {       \
-    paramtype* params = (paramtype*)(syscall_params + 1);                  \
+#define BATCHSYS_SYSCALL_BEGIN_INTERNAL(name, name_prefix, paramtype, fd)    \
+  static int batchsys##name_prefix##name(batchsys_context_t* context,        \
+                                         syscall_params_t* syscall_params,   \
+                                         syscall_result_t* result) {         \
+    struct file* filp_to_put = NULL;                                         \
+    paramtype* params = (paramtype*)(syscall_params + 1);                    \
+    struct file* filp = context_get_filp(context, params->fd, &filp_to_put); \
+    if (!filp) {                                                             \
+      result->error = -EINVAL;                                               \
+      result->result = -1;                                                   \
+      return sizeof(*params);                                                \
+    }                                                                        \
     result->error = 0;
 
-#define BATCHSYS_SYSCALL_END \
-  return sizeof(*params);    \
+#define BATCHSYS_SYSCALL_END   \
+  goto done;                   \
+  done:                        \
+  if (unlikely(filp_to_put)) { \
+    fput(filp_to_put);         \
+  }                            \
+  return sizeof(*params);      \
   }
 
-BATCHSYS_SYSCALL_BEGIN(accept) {
+BATCHSYS_SYSCALL_BEGIN(accept, sockfd) {
   result->error = ENODEV;
   result->result = -1;
   /*result->result = sys_accept(params->sockfd, params->addr,
@@ -108,7 +119,7 @@ BATCHSYS_SYSCALL_BEGIN(accept) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(accept4) {
+BATCHSYS_SYSCALL_BEGIN(accept4, sockfd) {
   result->error = ENODEV;
   result->result = -1;
   /*result->result =
@@ -142,7 +153,8 @@ ret;
   return 0;
 }*/
 
-BATCHSYS_SYSCALL_BEGIN_INTERNAL(accept4, _non_block_reuse_, accept4_params_t) {
+BATCHSYS_SYSCALL_BEGIN_INTERNAL(accept4, _non_block_reuse_, accept4_params_t,
+                                sockfd) {
   result->error = ENODEV;
   result->result = -1;
   /*
@@ -166,23 +178,22 @@ BATCHSYS_SYSCALL_BEGIN_INTERNAL(accept4, _non_block_reuse_, accept4_params_t) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(read) {
-  struct file* const filp = get_cached_filp(context, params->fd);
+BATCHSYS_SYSCALL_BEGIN(read, fd) {
+  struct file* const filp = context_get_filp(context, params->fd, &filp_to_put);
   if (!filp) {
     result->error = -EINVAL;
     result->result = -1;
-  } else {
-    result->result =
-        kernel_read(filp, params->buf, params->count, &filp->f_pos);
-    if (result->result < 0) {
-      result->error = -result->result;
-      result->result = -1;
-    }
+    goto done;
+  }
+  result->result = kernel_read(filp, params->buf, params->count, &filp->f_pos);
+  if (result->result < 0) {
+    result->error = -result->result;
+    result->result = -1;
   }
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(pread) {
+BATCHSYS_SYSCALL_BEGIN(pread, fd) {
   result->error = ENODEV;
   result->result = -1;
   /*result->result =
@@ -194,7 +205,7 @@ BATCHSYS_SYSCALL_BEGIN(pread) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(readv) {
+BATCHSYS_SYSCALL_BEGIN(readv, fd) {
   result->error = ENODEV;
   result->result = -1;
   /*// TODO: use vfs_iter_read and import_iovec
@@ -206,7 +217,7 @@ BATCHSYS_SYSCALL_BEGIN(readv) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(recv) {
+BATCHSYS_SYSCALL_BEGIN(recv, sockfd) {
   result->error = ENODEV;
   result->result = -1;
   /*// TODO(bwatling): use cached filp?
@@ -220,7 +231,7 @@ BATCHSYS_SYSCALL_BEGIN(recv) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(recvfrom) {
+BATCHSYS_SYSCALL_BEGIN(recvfrom, sockfd) {
   result->error = ENODEV;
   result->result = -1;
   /*// TODO(bwatling): use cached filp?
@@ -235,23 +246,22 @@ BATCHSYS_SYSCALL_BEGIN(recvfrom) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(write) {
-  struct file* const filp = get_cached_filp(context, params->fd);
+BATCHSYS_SYSCALL_BEGIN(write, fd) {
+  struct file* filp = context_get_filp(context, params->fd, &filp_to_put);
   if (!filp) {
     result->error = -EINVAL;
     result->result = -1;
-  } else {
-    result->result =
-        kernel_write(filp, params->buf, params->count, &filp->f_pos);
-    if (result->result < 0) {
-      result->error = -result->result;
-      result->result = -1;
-    }
+    goto done;
+  }
+  result->result = kernel_write(filp, params->buf, params->count, &filp->f_pos);
+  if (result->result < 0) {
+    result->error = -result->result;
+    result->result = -1;
   }
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(pwrite) {
+BATCHSYS_SYSCALL_BEGIN(pwrite, fd) {
   result->error = ENODEV;
   result->result = -1;
   /*// TODO(bwatling): use cached filp?
@@ -264,7 +274,7 @@ BATCHSYS_SYSCALL_BEGIN(pwrite) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(writev) {
+BATCHSYS_SYSCALL_BEGIN(writev, fd) {
   result->error = ENODEV;
   result->result = -1;
   /*// TODO(bwatling): use cached filp?
@@ -276,7 +286,7 @@ BATCHSYS_SYSCALL_BEGIN(writev) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(send) {
+BATCHSYS_SYSCALL_BEGIN(send, sockfd) {
   result->error = ENODEV;
   result->result = -1;
   /*// TODO(bwatling): use cached filp?
@@ -289,7 +299,7 @@ BATCHSYS_SYSCALL_BEGIN(send) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(sendto) {
+BATCHSYS_SYSCALL_BEGIN(sendto, sockfd) {
   result->error = ENODEV;
   result->result = -1;
   /*// TODO(bwatling): use cached filp?
@@ -303,7 +313,7 @@ BATCHSYS_SYSCALL_BEGIN(sendto) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(connect) {
+BATCHSYS_SYSCALL_BEGIN(connect, sockfd) {
   result->error = ENODEV;
   result->result = -1;
   /*result->result = sys_connect(params->sockfd, (struct
@@ -316,7 +326,7 @@ BATCHSYS_SYSCALL_BEGIN(connect) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(epoll_ctl) {
+BATCHSYS_SYSCALL_BEGIN(epoll_ctl, epfd) {
   result->error = ENODEV;
   result->result = -1;
   /*result->result =
@@ -328,47 +338,33 @@ BATCHSYS_SYSCALL_BEGIN(epoll_ctl) {
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN_INTERNAL(close_, _, close_params_t) {
-  struct file* filp = get_cached_filp(context, params->fd);
-  if (!filp) {
-    result->error = -EINVAL;
+BATCHSYS_SYSCALL_BEGIN_INTERNAL(close_, _, close_params_t, fd) {
+  context_uncache_filp(context, params->fd);
+  result->result = close_fd(params->fd);
+  if (result->result < 0) {
+    result->error = -result->result;
     result->result = -1;
-  } else {
-    context_uncache_filp(context, params->fd);
-    result->result = filp_close(filp, NULL);
-    if (result->result < 0) {
-      result->error = -result->result;
-      result->result = -1;
-    }
   }
 }
 BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN(socket) {
+static int batchsys_socket(batchsys_context_t* context,
+                           syscall_params_t* syscall_params,
+                           syscall_result_t* result) {
+  socket_params_t* params = (socket_params_t*)(syscall_params + 1);
   result->error = ENODEV;
   result->result = -1;
-  /*result->result = sys_socket(params->domain, params->type,
-  params->protocol); if (result->result < 0) { result->error =
-  -result->result; result->result = -1; } else { context_cache_filp(context,
-  result->result);
-  }*/
+  return sizeof(*params);
 }
-BATCHSYS_SYSCALL_END
 
-BATCHSYS_SYSCALL_BEGIN_INTERNAL(socket, _non_block_reuse_, socket_params_t) {
+static int batchsys_non_block_reuse_socket(batchsys_context_t* context,
+                                           syscall_params_t* syscall_params,
+                                           syscall_result_t* result) {
+  socket_params_t* params = (socket_params_t*)(syscall_params + 1);
   result->error = ENODEV;
   result->result = -1;
-  /*result->result = sys_socket(params->domain, params->type,
-  params->protocol); if (result->result < 0) { result->error =
-  -result->result; result->result = -1; } else { const int ret =
-  make_non_blocking_reuse(context, result->result); if (ret < 0) {
-      sys_close(result->result);
-      result->result = -1;
-      result->error = -ret;
-    }
-  }*/
+  return sizeof(*params);
 }
-BATCHSYS_SYSCALL_END
 
 static int batchsys_process(batchsys_context_t* context,
                             batchsys_batch_t* batch) {
@@ -473,18 +469,8 @@ static long batchsys_ioctl(struct file* filp, unsigned int op,
       }
       return batchsys_process(context, batch);
     case BATCHSYS_OP_CLOSE_FD:
-      struct file* filp;
-      if (arg >= context->max_fd) {
-        // TODO(bwatling): should probably just close the file here to work
-        // seemlessly.
-        return -EINVAL;
-      }
-      filp = context->registered_files[arg];
-      context->registered_files[arg] = NULL;
-      if (filp) {
-        return filp_close(filp, NULL);
-      }
-      return 0;
+      context_uncache_filp(context, arg);
+      return close_fd(arg);
     case BATCHSYS_OP_SET_FILE_LIMIT:
       return batchsys_set_file_cache_size(context, arg);
   }
@@ -513,6 +499,7 @@ static int batchsys_module_close(struct inode* inode, struct file* filp) {
     for (i = 0; i < context->max_fd; ++i) {
       if (context->registered_files[i]) {
         ++count;
+        fput(context->registered_files[i]);
       }
     }
     if (count) {

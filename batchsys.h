@@ -56,13 +56,6 @@ enum Syscall {
 
 #define BATCHSYS_PACKED __attribute__((__packed__))
 
-typedef struct socketpair_params {
-  int domain;
-  int type;
-  int protocol;
-  int* sv;
-} BATCHSYS_PACKED socketpair_params_t;
-
 typedef struct accept_params {
   int sockfd;
   struct sockaddr* addr;
@@ -152,10 +145,6 @@ typedef struct connect_params {
   uint32_t addrlen;
 } BATCHSYS_PACKED connect_params_t;
 
-typedef struct pipe_params {
-  int* pipefd;
-} BATCHSYS_PACKED pipe_params_t;
-
 typedef struct close_params {
   int fd;
 } BATCHSYS_PACKED close_params_t;
@@ -199,7 +188,6 @@ BATCHSYS_STATIC_ASSERT(sizeof(batchsys_incoming_t) == 2888,
   BATCHSYS_STATIC_ASSERT(sizeof(x) <= BATCHSYS_MAX_PARAM_SIZE, \
                          ParamSizeCheck##x)
 
-BATCHSYS_CHECK_PARAM_SIZE(socketpair_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(accept_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(accept4_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(read_params_t);
@@ -213,7 +201,6 @@ BATCHSYS_CHECK_PARAM_SIZE(writev_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(send_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(sendto_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(connect_params_t);
-BATCHSYS_CHECK_PARAM_SIZE(pipe_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(close_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(epoll_ctl_params_t);
 BATCHSYS_CHECK_PARAM_SIZE(socket_params_t);
@@ -272,7 +259,6 @@ static inline void batchsys_batch_reset(batchsys_batch_t* batch) {
 }
 
 static inline int batchsys_batch_full(const batchsys_batch_t* batch) {
-  // TODO: check byte size remaining?
   return batch->params.incoming.count >= BATCHSYS_MAX_RESULTS;
 }
 

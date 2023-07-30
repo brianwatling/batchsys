@@ -9,7 +9,8 @@
         "file.h": "c",
         "syscalls.h": "c",
         "uio.h": "c",
-        "module.h": "c"
+        "module.h": "c",
+        "fdtable.h": "c"
     },
     "C_Cpp.default.systemIncludePath": [
         "/usr/include",

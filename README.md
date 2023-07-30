@@ -18,7 +18,7 @@ Batchsys allows user space to build a batch of system calls and hand them off to
 
 ### !!!Safety Concern!!!
 
-Batchsys will attempt to cache kernel-internal structures for any file descriptor passed in a Batchsys batch. This is done to avoid overhead of the file table in the kernel. This caching means userspace must close file descriptors used with Batchsys via either `batchsys_close_fd()` or by batching a `close()` call with `batchsys_push_close()` to keep Batchsys's cache coherent.
+Batchsys will attempt to cache kernel-internal structures for any file descriptor passed in a Batchsys batch. This is done to avoid overhead of the file table in the kernel. This caching means userspace must close file descriptors used with Batchsys via either `batchsys_close_fd()` or by batching a `close()` call with `batchsys_push_close()` to keep Batchsys's cache coherent (otherwise batchsys will continue referencing and using the original file).
 
 ## Usage
 
