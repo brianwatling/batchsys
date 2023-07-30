@@ -12,7 +12,10 @@
         "module.h": "c"
     },
     "C_Cpp.default.systemIncludePath": [
+        "/usr/include",
         "/usr/src/linux-hwe-5.19-headers-5.19.0-50/arch/x86/include/uapi",
         "/usr/src/linux-hwe-5.19-headers-5.19.0-50/include"
-    ]
+    ],
+    "C_Cpp.loggingLevel": "Information",
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }

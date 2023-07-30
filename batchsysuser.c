@@ -64,9 +64,9 @@ int batchsys_open() {
 
 void batchsys_close(int batchsys_fd) { real_close(batchsys_fd); }
 
-struct BatchSysBatch* batchsys_batch_alloc(int batchsys_fd) {
-  struct BatchSysBatch* ret =
-      real_mmap(0, sizeof(struct BatchSysBatch), PROT_READ | PROT_WRITE,
+batchsys_batch_t* batchsys_batch_alloc(int batchsys_fd) {
+  batchsys_batch_t* ret =
+      real_mmap(0, sizeof(batchsys_batch_t), PROT_READ | PROT_WRITE,
                 MAP_PRIVATE, batchsys_fd, 0);
   if (ret == MAP_FAILED) {
     return 0;
@@ -75,7 +75,7 @@ struct BatchSysBatch* batchsys_batch_alloc(int batchsys_fd) {
   return ret;
 }
 
-void batchsys_batch_free(struct BatchSysBatch* batch) {
+void batchsys_batch_free(batchsys_batch_t* batch) {
   if (batch) {
     real_munmap(batch, sizeof(*batch));
   }
@@ -88,7 +88,7 @@ int batchsys_close_fd(int batchsys_fd, int fd) {
   return ret;
 }
 
-int batchsys_post_batch(int batchsys_fd, struct BatchSysBatch* batch) {
+int batchsys_post_batch(int batchsys_fd, batchsys_batch_t* batch) {
   assert(batch);
   assert(real_ioctl);
 
@@ -103,8 +103,8 @@ int batchsys_post_batch(int batchsys_fd, struct BatchSysBatch* batch) {
 }
 
 #define BATCHSYS_USER_PREAMBLE(call_number, param_type)           \
-  struct SyscallParams* params;                                   \
-  struct param_type* call_params;                                 \
+  syscall_params_t* params;                                       \
+  param_type* call_params;                                        \
   const uint32_t new_byte_count =                                 \
       batch->byte_count + sizeof(*params) + sizeof(*call_params); \
   do {                                                            \
@@ -114,9 +114,9 @@ int batchsys_post_batch(int batchsys_fd, struct BatchSysBatch* batch) {
       return 0;                                                   \
     }                                                             \
     dest = batch->params.incoming.bytes + batch->byte_count;      \
-    params = (struct SyscallParams*)dest;                         \
+    params = (syscall_params_t*)dest;                             \
     params->syscall = call_number;                                \
-    call_params = (struct param_type*)(dest + sizeof(*params));   \
+    call_params = (param_type*)(dest + sizeof(*params));          \
   } while (0)
 
 #define BATCHSYS_USER_EPILOGUE          \
@@ -126,9 +126,9 @@ int batchsys_post_batch(int batchsys_fd, struct BatchSysBatch* batch) {
     return 1;                           \
   } while (0)
 
-int batchsys_push_read(struct BatchSysBatch* batch, int fd, void* buf,
+int batchsys_push_read(batchsys_batch_t* batch, int fd, void* buf,
                        size_t count) {
-  BATCHSYS_USER_PREAMBLE(kRead, ReadParams);
+  BATCHSYS_USER_PREAMBLE(kRead, read_params_t);
 
   call_params->fd = fd;
   call_params->buf = buf;
@@ -137,9 +137,9 @@ int batchsys_push_read(struct BatchSysBatch* batch, int fd, void* buf,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_pread(struct BatchSysBatch* batch, int fd, void* buf,
+int batchsys_push_pread(batchsys_batch_t* batch, int fd, void* buf,
                         size_t count, off_t offset) {
-  BATCHSYS_USER_PREAMBLE(kPread, PreadParams);
+  BATCHSYS_USER_PREAMBLE(kPread, pread_params_t);
 
   call_params->fd = fd;
   call_params->buf = buf;
@@ -149,9 +149,9 @@ int batchsys_push_pread(struct BatchSysBatch* batch, int fd, void* buf,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_readv(struct BatchSysBatch* batch, int fd,
+int batchsys_push_readv(batchsys_batch_t* batch, int fd,
                         const struct iovec* iov, int iovcnt) {
-  BATCHSYS_USER_PREAMBLE(kReadv, ReadvParams);
+  BATCHSYS_USER_PREAMBLE(kReadv, readv_params_t);
 
   call_params->fd = fd;
   call_params->iov = iov;
@@ -160,9 +160,9 @@ int batchsys_push_readv(struct BatchSysBatch* batch, int fd,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_write(struct BatchSysBatch* batch, int fd, const void* buf,
+int batchsys_push_write(batchsys_batch_t* batch, int fd, const void* buf,
                         size_t count) {
-  BATCHSYS_USER_PREAMBLE(kWrite, WriteParams);
+  BATCHSYS_USER_PREAMBLE(kWrite, write_params_t);
 
   call_params->fd = fd;
   call_params->buf = buf;
@@ -171,9 +171,9 @@ int batchsys_push_write(struct BatchSysBatch* batch, int fd, const void* buf,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_pwrite(struct BatchSysBatch* batch, int fd, const void* buf,
+int batchsys_push_pwrite(batchsys_batch_t* batch, int fd, const void* buf,
                          size_t count, off_t offset) {
-  BATCHSYS_USER_PREAMBLE(kPwrite, PwriteParams);
+  BATCHSYS_USER_PREAMBLE(kPwrite, pwrite_params_t);
 
   call_params->fd = fd;
   call_params->buf = buf;
@@ -183,9 +183,9 @@ int batchsys_push_pwrite(struct BatchSysBatch* batch, int fd, const void* buf,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_writev(struct BatchSysBatch* batch, int fd,
+int batchsys_push_writev(batchsys_batch_t* batch, int fd,
                          const struct iovec* iov, int iovcnt) {
-  BATCHSYS_USER_PREAMBLE(kWritev, WritevParams);
+  BATCHSYS_USER_PREAMBLE(kWritev, writev_params_t);
 
   call_params->fd = fd;
   call_params->iov = iov;
@@ -194,9 +194,9 @@ int batchsys_push_writev(struct BatchSysBatch* batch, int fd,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_recv(struct BatchSysBatch* batch, int sockfd, void* buf,
+int batchsys_push_recv(batchsys_batch_t* batch, int sockfd, void* buf,
                        size_t len, int flags) {
-  BATCHSYS_USER_PREAMBLE(kRecv, RecvParams);
+  BATCHSYS_USER_PREAMBLE(kRecv, recv_params_t);
 
   call_params->sockfd = sockfd;
   call_params->buf = buf;
@@ -206,10 +206,10 @@ int batchsys_push_recv(struct BatchSysBatch* batch, int sockfd, void* buf,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_recvfrom(struct BatchSysBatch* batch, int sockfd, void* buf,
+int batchsys_push_recvfrom(batchsys_batch_t* batch, int sockfd, void* buf,
                            size_t len, int flags, struct sockaddr* src_addr,
                            uint32_t* addrlen) {
-  BATCHSYS_USER_PREAMBLE(kRecvfrom, RecvfromParams);
+  BATCHSYS_USER_PREAMBLE(kRecvfrom, recvfrom_params_t);
 
   call_params->sockfd = sockfd;
   call_params->buf = buf;
@@ -221,9 +221,9 @@ int batchsys_push_recvfrom(struct BatchSysBatch* batch, int sockfd, void* buf,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_send(struct BatchSysBatch* batch, int sockfd, const void* buf,
+int batchsys_push_send(batchsys_batch_t* batch, int sockfd, const void* buf,
                        size_t len, int flags) {
-  BATCHSYS_USER_PREAMBLE(kSend, SendParams);
+  BATCHSYS_USER_PREAMBLE(kSend, send_params_t);
 
   call_params->sockfd = sockfd;
   call_params->buf = buf;
@@ -233,10 +233,10 @@ int batchsys_push_send(struct BatchSysBatch* batch, int sockfd, const void* buf,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_sendto(struct BatchSysBatch* batch, int sockfd,
-                         const void* buf, size_t len, int flags,
+int batchsys_push_sendto(batchsys_batch_t* batch, int sockfd, const void* buf,
+                         size_t len, int flags,
                          const struct sockaddr* dest_addr, uint32_t addrlen) {
-  BATCHSYS_USER_PREAMBLE(kSendto, SendtoParams);
+  BATCHSYS_USER_PREAMBLE(kSendto, sendto_params_t);
 
   call_params->sockfd = sockfd;
   call_params->buf = buf;
@@ -248,9 +248,9 @@ int batchsys_push_sendto(struct BatchSysBatch* batch, int sockfd,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_accept(struct BatchSysBatch* batch, int sockfd,
+int batchsys_push_accept(batchsys_batch_t* batch, int sockfd,
                          struct sockaddr* addr, uint32_t* addrlen) {
-  BATCHSYS_USER_PREAMBLE(kAccept, AcceptParams);
+  BATCHSYS_USER_PREAMBLE(kAccept, accept_params_t);
 
   call_params->sockfd = sockfd;
   call_params->addr = addr;
@@ -259,9 +259,9 @@ int batchsys_push_accept(struct BatchSysBatch* batch, int sockfd,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_accept4(struct BatchSysBatch* batch, int sockfd,
+int batchsys_push_accept4(batchsys_batch_t* batch, int sockfd,
                           struct sockaddr* addr, uint32_t* addrlen, int flags) {
-  BATCHSYS_USER_PREAMBLE(kAccept4, Accept4Params);
+  BATCHSYS_USER_PREAMBLE(kAccept4, accept4_params_t);
 
   call_params->sockfd = sockfd;
   call_params->addr = addr;
@@ -271,10 +271,10 @@ int batchsys_push_accept4(struct BatchSysBatch* batch, int sockfd,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_accept4_non_block_reuse(struct BatchSysBatch* batch,
-                                          int sockfd, struct sockaddr* addr,
+int batchsys_push_accept4_non_block_reuse(batchsys_batch_t* batch, int sockfd,
+                                          struct sockaddr* addr,
                                           uint32_t* addrlen, int flags) {
-  BATCHSYS_USER_PREAMBLE(kAccept4NonBlockReuse, Accept4Params);
+  BATCHSYS_USER_PREAMBLE(kAccept4NonBlockReuse, accept4_params_t);
 
   call_params->sockfd = sockfd;
   call_params->addr = addr;
@@ -284,9 +284,9 @@ int batchsys_push_accept4_non_block_reuse(struct BatchSysBatch* batch,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_connect(struct BatchSysBatch* batch, int sockfd,
+int batchsys_push_connect(batchsys_batch_t* batch, int sockfd,
                           const struct sockaddr* addr, uint32_t addrlen) {
-  BATCHSYS_USER_PREAMBLE(kConnect, ConnectParams);
+  BATCHSYS_USER_PREAMBLE(kConnect, connect_params_t);
 
   call_params->sockfd = sockfd;
   call_params->addr = addr;
@@ -295,9 +295,9 @@ int batchsys_push_connect(struct BatchSysBatch* batch, int sockfd,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_epoll_ctl(struct BatchSysBatch* batch, int epfd, int op,
-                            int fd, struct epoll_event* event) {
-  BATCHSYS_USER_PREAMBLE(kEpollCtl, EpollCtlParams);
+int batchsys_push_epoll_ctl(batchsys_batch_t* batch, int epfd, int op, int fd,
+                            struct epoll_event* event) {
+  BATCHSYS_USER_PREAMBLE(kEpollCtl, epoll_ctl_params_t);
 
   call_params->epfd = epfd;
   call_params->op = op;
@@ -307,17 +307,17 @@ int batchsys_push_epoll_ctl(struct BatchSysBatch* batch, int epfd, int op,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_close(struct BatchSysBatch* batch, int fd) {
-  BATCHSYS_USER_PREAMBLE(kClose, CloseParams);
+int batchsys_push_close(batchsys_batch_t* batch, int fd) {
+  BATCHSYS_USER_PREAMBLE(kClose, close_params_t);
 
   call_params->fd = fd;
 
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_socket(struct BatchSysBatch* batch, int domain, int type,
+int batchsys_push_socket(batchsys_batch_t* batch, int domain, int type,
                          int protocol) {
-  BATCHSYS_USER_PREAMBLE(kSocket, SocketParams);
+  BATCHSYS_USER_PREAMBLE(kSocket, socket_params_t);
 
   call_params->domain = domain;
   call_params->type = type;
@@ -326,9 +326,9 @@ int batchsys_push_socket(struct BatchSysBatch* batch, int domain, int type,
   BATCHSYS_USER_EPILOGUE;
 }
 
-int batchsys_push_socket_non_block_reuse(struct BatchSysBatch* batch,
-                                         int domain, int type, int protocol) {
-  BATCHSYS_USER_PREAMBLE(kSocketNonBlockReuse, SocketParams);
+int batchsys_push_socket_non_block_reuse(batchsys_batch_t* batch, int domain,
+                                         int type, int protocol) {
+  BATCHSYS_USER_PREAMBLE(kSocketNonBlockReuse, socket_params_t);
 
   call_params->domain = domain;
   call_params->type = type;

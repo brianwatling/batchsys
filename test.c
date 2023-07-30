@@ -35,7 +35,7 @@ void bench(char* argv) {
     printf("failed to open temp file: %d\n", errno);
     return;
   }
-  struct BatchSysBatch* batch = batchsys_batch_alloc(batchsys);
+  batchsys_batch_t* batch = batchsys_batch_alloc(batchsys);
   clock_gettime(CLOCK_MONOTONIC, &start);
   int count = 0;
   int i;
@@ -49,7 +49,7 @@ void bench(char* argv) {
     ret = batchsys_post_batch(batchsys, batch);
     assert(batch->params.outgoing.count > 0);
     for (j = 0; j < batch_batch_result_count(batch); ++j) {
-      const struct SyscallResult* result = batch_batch_get_result(batch, j);
+      const syscall_result_t* result = batch_batch_get_result(batch, j);
       if (result->result < 0) {
         printf("write failure: %zd %ld\n", result->result, result->error);
       }

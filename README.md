@@ -35,7 +35,7 @@ batchsys_close(batchsys);
 Allocate a batch buffer via `batchsys_batch_alloc()`. Batch buffers can and should be reused - simply call `batchsys_batch_reset()` after flushing a batch (reset is very cheap compared to allocating a new batch). Batch buffers must be freed by calling `batchsys_batch_free()`.
 
 ```c
-struct BatchSysBatch* batch = batchsys_batch_alloc(batchsys);
+batchsys_batch_t* batch = batchsys_batch_alloc(batchsys);
 
 batchsys_batch_free(batch);
 ```
@@ -45,7 +45,7 @@ Push one or several requests into the batch via the `batchsys_push_xxx()` APIs. 
 ```c
 // Assume these are initialized elsewhere.
 int batchsys;
-struct BatchSysBatch* batch;
+batchsys_batch_t* batch;
 
 const char* data = "hello world!"
 size_t len = strlen(data);
@@ -58,19 +58,19 @@ batchsys_post_batch(batchsys, batch);
 batchsys_batch_reset(batch);
 ```
 
-Batchsys returns system call results directly in the batch buffer. The normal return code and errno for each system call in a batch are returned and can be accessed via `struct SyscallResult`. Use the `batch_batch_result_count()` and `batch_batch_get_result()` functions to access results (or read results directly via `struct BatchSysBatch`, everything is accessible).
+Batchsys returns system call results directly in the batch buffer. The normal return code and errno for each system call in a batch are returned and can be accessed via `syscall_result_t`. Use the `batch_batch_result_count()` and `batch_batch_get_result()` functions to access results (or read results directly via `batchsys_batch_t`, everything is accessible).
 
 ```c
 // Assume these are initialized elsewhere.
 int batchsys;
-struct BatchSysBatch* batch;
+batchsys_batch_t* batch;
 
 int flush_batch_and_check_results() {
     if (batchsys_post_batch(batchsys, batch) < 0) {
         return -1;
     }
     for (int i = 0; i < batch_batch_result_count(batch); ++i) {
-        const struct SyscallResult* result = batch_batch_get_result(batch, i);
+        const syscall_result_t* result = batch_batch_get_result(batch, i);
         if (result->result < 0) {
             printf("Got an error on syscall %d: result= %zd errno=%ld\n", result->result, result->errno);
             return -1;
@@ -84,7 +84,7 @@ The following example builds on all of the above to build a simple function that
 ```c
 // Assume these are initialized elsewhere.
 int batchsys;
-struct BatchSysBatch* batch;
+batchsys_batch_t* batch;
 
 int write_to_many(size_t num_fds, int* fds, const void* data, size_t len) {
     for (size_t i = 0; i < num_fds; ++i) {

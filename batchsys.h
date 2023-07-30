@@ -56,196 +56,194 @@ enum Syscall {
 
 #define BATCHSYS_PACKED __attribute__((__packed__))
 
-struct SocketpairParams {
+typedef struct socketpair_params {
   int domain;
   int type;
   int protocol;
   int* sv;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED socketpair_params_t;
 
-struct AcceptParams {
+typedef struct accept_params {
   int sockfd;
   struct sockaddr* addr;
   uint32_t* addrlen;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED accept_params_t;
 
-struct Accept4Params {
+typedef struct accept4_params {
   int sockfd;
   struct sockaddr* addr;
   uint32_t* addrlen;
   int flags;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED accept4_params_t;
 
-struct ReadParams {
+typedef struct read_params {
   int fd;
   void* buf;
   size_t count;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED read_params_t;
 
-struct PreadParams {
+typedef struct pread_params {
   int fd;
   void* buf;
   size_t count;
   off_t offset;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED pread_params_t;
 
-struct ReadvParams {
+typedef struct readv_params {
   int fd;
   const struct iovec* iov;
   int iovcnt;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED readv_params_t;
 
-struct RecvParams {
+typedef struct recv_params {
   int sockfd;
   void* buf;
   size_t len;
   int flags;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED recv_params_t;
 
-struct RecvfromParams {
+typedef struct recvfrom_params {
   int sockfd;
   void* buf;
   size_t len;
   int flags;
   struct sockaddr* src_addr;
   uint32_t* addrlen;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED recvfrom_params_t;
 
-struct WriteParams {
+typedef struct write_params {
   int fd;
   const void* buf;
   size_t count;
-};
+} BATCHSYS_PACKED write_params_t;
 
-struct PwriteParams {
+typedef struct pwrite_params {
   int fd;
   const void* buf;
   size_t count;
   off_t offset;
-};
+} BATCHSYS_PACKED pwrite_params_t;
 
-struct WritevParams {
+typedef struct writev_params {
   int fd;
   const struct iovec* iov;
   int iovcnt;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED writev_params_t;
 
-struct SendParams {
+typedef struct send_params {
   int sockfd;
   const void* buf;
   size_t len;
   int flags;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED send_params_t;
 
-struct SendtoParams {
+typedef struct sendto_params {
   int sockfd;
   const void* buf;
   size_t len;
   int flags;
   const struct sockaddr* dest_addr;
   uint32_t addrlen;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED sendto_params_t;
 
-struct ConnectParams {
+typedef struct connect_params {
   int sockfd;
   const struct sockaddr* addr;
   uint32_t addrlen;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED connect_params_t;
 
-struct PipeParams {
+typedef struct pipe_params {
   int* pipefd;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED pipe_params_t;
 
-struct CloseParams {
+typedef struct close_params {
   int fd;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED close_params_t;
 
-struct EpollCtlParams {
+typedef struct epoll_ctl_params {
   int epfd;
   int op;
   int fd;
   struct epoll_event event;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED epoll_ctl_params_t;
 
-struct CloseFdParams {
-  int fd;
-} BATCHSYS_PACKED;
-
-struct SocketParams {
+typedef struct socket_params {
   int domain;
   int type;
   int protocol;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED socket_params_t;
 
-struct SyscallParams {
+typedef struct syscall_params {
   uint8_t syscall;
   char params[];
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED syscall_params_t;
 
-struct SyscallResult {
+typedef struct syscall_result {
   ssize_t result;
   int64_t error;
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED syscall_result_t;
 
 #define BATCHSYS_MAX_RESULTS (72)
 #define BATCHSYS_MAX_PARAM_SIZE (40)
 #define BATCHSYS_PARAM_SIZE (BATCHSYS_MAX_RESULTS * BATCHSYS_MAX_PARAM_SIZE)
 
-struct BatchSysIncoming {
+typedef struct batchsys_incoming {
   uint64_t count;
   char bytes[BATCHSYS_PARAM_SIZE];
-} BATCHSYS_PACKED;
+} BATCHSYS_PACKED batchsys_incoming_t;
 
-BATCHSYS_STATIC_ASSERT(sizeof(struct BatchSysIncoming) == 2888,
+BATCHSYS_STATIC_ASSERT(sizeof(batchsys_incoming_t) == 2888,
                        SizeCheckBatchSysIncoming);
 
-#define BATCHSYS_CHECK_PARAM_SIZE(x)                                  \
-  BATCHSYS_STATIC_ASSERT(sizeof(struct x) <= BATCHSYS_MAX_PARAM_SIZE, \
+#define BATCHSYS_CHECK_PARAM_SIZE(x)                           \
+  BATCHSYS_STATIC_ASSERT(sizeof(x) <= BATCHSYS_MAX_PARAM_SIZE, \
                          ParamSizeCheck##x)
 
-BATCHSYS_CHECK_PARAM_SIZE(SocketpairParams);
-BATCHSYS_CHECK_PARAM_SIZE(AcceptParams);
-BATCHSYS_CHECK_PARAM_SIZE(Accept4Params);
-BATCHSYS_CHECK_PARAM_SIZE(ReadParams);
-BATCHSYS_CHECK_PARAM_SIZE(PreadParams);
-BATCHSYS_CHECK_PARAM_SIZE(ReadvParams);
-BATCHSYS_CHECK_PARAM_SIZE(RecvParams);
-BATCHSYS_CHECK_PARAM_SIZE(RecvfromParams);
-BATCHSYS_CHECK_PARAM_SIZE(WriteParams);
-BATCHSYS_CHECK_PARAM_SIZE(PwriteParams);
-BATCHSYS_CHECK_PARAM_SIZE(WritevParams);
-BATCHSYS_CHECK_PARAM_SIZE(SendParams);
-BATCHSYS_CHECK_PARAM_SIZE(SendtoParams);
-BATCHSYS_CHECK_PARAM_SIZE(ConnectParams);
-BATCHSYS_CHECK_PARAM_SIZE(PipeParams);
-BATCHSYS_CHECK_PARAM_SIZE(CloseParams);
-BATCHSYS_CHECK_PARAM_SIZE(EpollCtlParams);
-BATCHSYS_CHECK_PARAM_SIZE(CloseFdParams);
-BATCHSYS_CHECK_PARAM_SIZE(SocketParams);
-BATCHSYS_CHECK_PARAM_SIZE(SyscallParams);
-BATCHSYS_CHECK_PARAM_SIZE(SyscallResult);
+BATCHSYS_CHECK_PARAM_SIZE(socketpair_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(accept_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(accept4_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(read_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(pread_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(readv_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(recv_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(recvfrom_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(write_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(pwrite_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(writev_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(send_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(sendto_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(connect_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(pipe_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(close_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(epoll_ctl_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(socket_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(syscall_params_t);
+BATCHSYS_CHECK_PARAM_SIZE(syscall_result_t);
 
-struct BatchSysOutgoing {
+typedef struct batchsys_outgoing {
   uint64_t count;
-  struct SyscallResult results[BATCHSYS_MAX_RESULTS];
-} BATCHSYS_PACKED;
+  syscall_result_t results[BATCHSYS_MAX_RESULTS];
+} BATCHSYS_PACKED batchsys_outgoing_t;
 
-BATCHSYS_STATIC_ASSERT(sizeof(struct BatchSysOutgoing) == 1160,
+BATCHSYS_STATIC_ASSERT(sizeof(batchsys_outgoing_t) == 1160,
                        SizeCheckBatchSysIncoming);
 
-struct BatchSysProcessParams {
-  struct BatchSysIncoming incoming;
-  struct BatchSysOutgoing outgoing;
-} BATCHSYS_PACKED;
+typedef struct batchsys_process_params {
+  batchsys_incoming_t incoming;
+  batchsys_outgoing_t outgoing;
+} BATCHSYS_PACKED batchsys_process_params_t;
 
-BATCHSYS_STATIC_ASSERT(sizeof(struct BatchSysProcessParams) == 4048,
+BATCHSYS_STATIC_ASSERT(sizeof(batchsys_process_params_t) == 4048,
                        SizeCheckBatchSysIncoming);
 
-struct BatchSysBatch {
+typedef struct batchsys_batch {
   uint32_t id;
   uint32_t byte_count;
-  struct BatchSysProcessParams params;
-};
+  batchsys_process_params_t params;
+} batchsys_batch_t;
+
+BATCHSYS_STATIC_ASSERT(sizeof(batchsys_batch_t) == 4056,
+                       SizeCheckBatchSysBatch);
 
 #ifdef __cplusplus
 extern "C" {
@@ -263,98 +261,97 @@ int batchsys_open(void);
 
 void batchsys_close(int batchsys_fd);
 
-struct BatchSysBatch* batchsys_batch_alloc(int batchsys_fd);
+batchsys_batch_t* batchsys_batch_alloc(int batchsys_fd);
 
-void batchsys_batch_free(struct BatchSysBatch* batch);
+void batchsys_batch_free(batchsys_batch_t* batch);
 
-static inline void batchsys_batch_reset(struct BatchSysBatch* batch) {
+static inline void batchsys_batch_reset(batchsys_batch_t* batch) {
   batch->byte_count = 0;
   batch->params.incoming.count = 0;
   batch->params.outgoing.count = 0;
 }
 
-static inline int batchsys_batch_full(const struct BatchSysBatch* batch) {
+static inline int batchsys_batch_full(const batchsys_batch_t* batch) {
   // TODO: check byte size remaining?
   return batch->params.incoming.count >= BATCHSYS_MAX_RESULTS;
 }
 
-static inline int batchsys_batch_empty(const struct BatchSysBatch* batch) {
+static inline int batchsys_batch_empty(const batchsys_batch_t* batch) {
   return batch->params.incoming.count == 0;
 }
 
-static inline uint64_t batch_batch_result_count(
-    const struct BatchSysBatch* batch) {
+static inline uint64_t batch_batch_result_count(const batchsys_batch_t* batch) {
   return batch->params.outgoing.count;
 }
 
-static inline const struct SyscallResult* batch_batch_get_result(
-    const struct BatchSysBatch* batch, uint64_t index) {
+static inline const syscall_result_t* batch_batch_get_result(
+    const batchsys_batch_t* batch, uint64_t index) {
   return &batch->params.outgoing.results[index];
 }
 
 int batchsys_close_fd(int batchsys_fd, int fd);
 
-int batchsys_post_batch(int batchsys_fd, struct BatchSysBatch* batch);
+int batchsys_post_batch(int batchsys_fd, batchsys_batch_t* batch);
 
-int batchsys_push_read(struct BatchSysBatch* batch, int fd, void* buf,
+int batchsys_push_read(batchsys_batch_t* batch, int fd, void* buf,
                        size_t count);
 
-int batchsys_push_pread(struct BatchSysBatch* batch, int fd, void* buf,
+int batchsys_push_pread(batchsys_batch_t* batch, int fd, void* buf,
                         size_t count, off_t offset);
 
-int batchsys_push_readv(struct BatchSysBatch* batch, int fd,
+int batchsys_push_readv(batchsys_batch_t* batch, int fd,
                         const struct iovec* iov, int iovcnt);
 
-int batchsys_push_write(struct BatchSysBatch* batch, int fd, const void* buf,
+int batchsys_push_write(batchsys_batch_t* batch, int fd, const void* buf,
                         size_t count);
 
-int batchsys_push_pwrite(struct BatchSysBatch* batch, int fd, const void* buf,
+int batchsys_push_pwrite(batchsys_batch_t* batch, int fd, const void* buf,
                          size_t count, off_t offset);
 
-int batchsys_push_writev(struct BatchSysBatch* batch, int fd,
+int batchsys_push_writev(batchsys_batch_t* batch, int fd,
                          const struct iovec* iov, int iovcnt);
 
-int batchsys_push_recv(struct BatchSysBatch* batch, int sockfd, void* buf,
+int batchsys_push_recv(batchsys_batch_t* batch, int sockfd, void* buf,
                        size_t len, int flags);
 
-int batchsys_push_recvfrom(struct BatchSysBatch* batch, int sockfd, void* buf,
+int batchsys_push_recvfrom(batchsys_batch_t* batch, int sockfd, void* buf,
                            size_t len, int flags, struct sockaddr* src_addr,
                            uint32_t* addrlen);
 
-int batchsys_push_send(struct BatchSysBatch* batch, int sockfd, const void* buf,
+int batchsys_push_send(batchsys_batch_t* batch, int sockfd, const void* buf,
                        size_t len, int flags);
 
-int batchsys_push_sendto(struct BatchSysBatch* batch, int sockfd,
-                         const void* buf, size_t len, int flags,
+int batchsys_push_sendto(batchsys_batch_t* batch, int sockfd, const void* buf,
+                         size_t len, int flags,
                          const struct sockaddr* dest_addr, uint32_t addrlen);
 
-int batchsys_push_accept(struct BatchSysBatch* batch, int sockfd,
+int batchsys_push_accept(batchsys_batch_t* batch, int sockfd,
                          struct sockaddr* addr, uint32_t* addrlen);
 
-int batchsys_push_accept4(struct BatchSysBatch* batch, int sockfd,
+int batchsys_push_accept4(batchsys_batch_t* batch, int sockfd,
                           struct sockaddr* addr, uint32_t* addrlen, int flags);
 
 // Pushes an 'accept4', plus batchsys will ensure the new socket is non-blocking
 // and will set SO_REUSEADDR.
-int batchsys_push_accept4_non_block_reuse(struct BatchSysBatch* batch,
-                                          int sockfd, struct sockaddr* addr,
+int batchsys_push_accept4_non_block_reuse(batchsys_batch_t* batch, int sockfd,
+                                          struct sockaddr* addr,
                                           uint32_t* addrlen, int flags);
 
-int batchsys_push_connect(struct BatchSysBatch* batch, int sockfd,
+int batchsys_push_connect(batchsys_batch_t* batch, int sockfd,
                           const struct sockaddr* addr, uint32_t addrlen);
 
-int batchsys_push_epoll_ctl(struct BatchSysBatch* batch, int epfd, int op,
-                            int fd, struct epoll_event* event);
+int batchsys_push_epoll_ctl(batchsys_batch_t* batch, int epfd, int op, int fd,
+                            struct epoll_event* event);
 
-int batchsys_push_close(struct BatchSysBatch* batch, int fd);
+int batchsys_push_close(batchsys_batch_t* batch, int fd);
 
-int batchsys_push_socket(struct BatchSysBatch* batch, int domain, int type,
+int batchsys_push_socket(batchsys_batch_t* batch, int domain, int type,
                          int protocol);
 
 // Pushes a 'socket' plus batchsys will ensure the new socket is non-blocking
 // and will set SO_REUSEADDR.
-int batchsys_push_socket_non_block_reuse(struct BatchSysBatch* batch,
-                                         int domain, int type, int protocol);
+int batchsys_push_socket_non_block_reuse(batchsys_batch_t* batch, int domain,
+                                         int type, int protocol);
 
 #ifdef __cplusplus
 }
