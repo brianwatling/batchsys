@@ -91,6 +91,13 @@ int batchsys_close_fd(int batchsys_fd, int fd) {
   return ret;
 }
 
+int batchsys_cached_fds(int batchsys_fd) {
+  assert(real_ioctl);
+
+  const int ret = real_ioctl(batchsys_fd, BATCHSYS_OP_CACHED_FDS, 0);
+  return ret;
+}
+
 int batchsys_post_batch(int batchsys_fd, batchsys_batch_t* batch) {
   assert(batch);
   assert(real_ioctl);

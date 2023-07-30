@@ -21,19 +21,15 @@
 #include <sys/types.h>
 #endif
 
-#ifdef __GNUC__
-#define BATCHSYS_STATIC_ASSERT_HELPER(expr, msg)                     \
-  (!!sizeof(struct {                                                 \
-    unsigned int BATCHSYS_STATIC_ASSERTION__##msg : (expr) ? 1 : -1; \
-  }))
-#define BATCHSYS_STATIC_ASSERT(expr, msg) \
-  extern int(                             \
-      *_assert_function__(void))[BATCHSYS_STATIC_ASSERT_HELPER(expr, msg)]
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+#define BATCHSYS_STATIC_ASSERT(expr, msg) static_assert(expr, #msg)
 #else
-#define BATCHSYS_STATIC_ASSERT(expr, msg)          \
-  extern char BATCHSYS_STATIC_ASSERTION__##msg[1]; \
-  extern char BATCHSYS_STATIC_ASSERTION__##msg[(expr) ? 1 : 2]
-#endif /* #ifdef __GNUC__ */
+#define BATCHSYS_STATIC_ASSERT(expr, msg) _Static_assert(expr, #msg)
+#endif
 
 enum Syscall {
   kAccept,
@@ -235,15 +231,12 @@ typedef struct batchsys_batch {
 BATCHSYS_STATIC_ASSERT(sizeof(batchsys_batch_t) == 4056,
                        SizeCheckBatchSysBatch);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define BATCHSYS_MAGIC (193)
 
 #define BATCHSYS_OP_EXECUTE_BATCH (_IO(BATCHSYS_MAGIC, 1))
 #define BATCHSYS_OP_CLOSE_FD (_IO(BATCHSYS_MAGIC, 2))
 #define BATCHSYS_OP_SET_FILE_LIMIT (_IO(BATCHSYS_MAGIC, 3))
+#define BATCHSYS_OP_CACHED_FDS (_IO(BATCHSYS_MAGIC, 4))
 
 int batchsys_get_fd_limit(void);
 
@@ -279,6 +272,9 @@ static inline const syscall_result_t* batch_batch_get_result(
 }
 
 int batchsys_close_fd(int batchsys_fd, int fd);
+
+// For debugging only, runs in O(n).
+int batchsys_cached_fds(int batchsys_fd);
 
 int batchsys_post_batch(int batchsys_fd, batchsys_batch_t* batch);
 

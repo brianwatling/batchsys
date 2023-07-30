@@ -12,7 +12,8 @@
         "syscalls.h": "c",
         "uio.h": "c",
         "module.h": "c",
-        "fdtable.h": "c"
+        "fdtable.h": "c",
+        "string_view": "cpp"
     },
     "C_Cpp.default.systemIncludePath": [
         "/usr/include",
@@ -20,5 +21,6 @@
         "/usr/src/linux-hwe-5.19-headers-5.19.0-50/include"
     ],
     "C_Cpp.loggingLevel": "Information",
-    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+    "editor.tabSize": 2
 }
