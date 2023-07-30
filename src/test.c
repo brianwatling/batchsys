@@ -32,8 +32,15 @@ void bench(char* argv) {
     return;
   }
   int fd = open("/tmp/batchsys_benchmark.txt", O_CREAT | O_TRUNC | O_WRONLY,
-                S_IRUSR | S_IWUSR);
+                ALLPERMS);
   if (fd < 0) {
+    batchsys_close(batchsys);
+    printf("failed to open temp file: %d\n", errno);
+    return;
+  }
+  int fd2 = open("/tmp/batchsys_benchmark2.txt", O_CREAT | O_TRUNC | O_WRONLY,
+                 ALLPERMS);
+  if (fd2 < 0) {
     batchsys_close(batchsys);
     printf("failed to open temp file: %d\n", errno);
     return;
@@ -66,7 +73,7 @@ void bench(char* argv) {
 
   clock_gettime(CLOCK_MONOTONIC, &start);
   for (i = 0; i < count; ++i) {
-    int x = write(fd, argv, len);
+    int x = write(fd2, argv, len);
     (void)x;
   }
   clock_gettime(CLOCK_MONOTONIC, &end);
@@ -74,6 +81,7 @@ void bench(char* argv) {
   printf("single:  %" PRIu64 "\n", single);
   printf("batch/single: %lf\n", (double)batched / single);
   batchsys_close_fd(batchsys, fd);
+  batchsys_close_fd(batchsys, fd2);
   batchsys_close(batchsys);
 }
 
