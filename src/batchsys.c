@@ -478,7 +478,8 @@ static long batchsys_ioctl(struct file* filp, unsigned int op,
       return batchsys_set_file_cache_size(context, arg);
     case BATCHSYS_OP_CACHED_FDS:
       int count = 0;
-      for (int i = 0; i < context->max_fd; ++i) {
+      int i;
+      for (i = 0; i < context->max_fd; ++i) {
         if (context->registered_files[i]) {
           count++;
         }
